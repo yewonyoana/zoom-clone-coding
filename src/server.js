@@ -24,15 +24,33 @@ const server = http.createServer(app);
 // - With "({ server })",  WebSocket server with start with http server to share the same port (3000) (BUT optional)
 const wss = new WebSocket.Server({ server });
 
-// ⬇️ Helps communicate (send/receive msgs) with Front End in real-time (console.log in terminal)
+// ⬇️ Fake database
+const sockets = [];
+
+// ⬇️ Helps communicate (send/receive msgs) with Front End in real-time 🟰 Bi-directional connection btw BE and FE
+// - Shows in VSC terminal by using "console.log"
 // - "socket" represents the browser that connected
 wss.on("connection", (socket) => {
+	sockets.push(socket);
+	socket["nickname"] = "Anon";
 	console.log("Connected to Browser ✅");
+	// ⬇️ Anonymous function (same as using function)
 	socket.on("close", () => console.log("Disconnected from Browser ❌"));
-	socket.on("message", (message) => {
-		console.log(message.toString("utf8"));
+	socket.on("message", (msg) => {
+		// console.log(message.toString("utf-8"));
+		// ⬇️ "JSON.parse" turns string into JS object
+		const message = JSON.parse(msg);
+		switch (message.type) {
+			case "new_message":
+				sockets.forEach((aSocket) =>
+					aSocket.send(
+						`${socket.nickname}: ${message.payload}`.toString("utf-8")
+					)
+				);
+			case "nickname":
+				socket["nickname"] = message.payload;
+		}
 	});
-	socket.send("hello!");
 });
 
 server.listen(3000, handleListen);
